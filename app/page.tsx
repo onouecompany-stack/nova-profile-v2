@@ -282,7 +282,6 @@ function EditPage({ data, tagId, base64Image, setBase64Image, isNew }: any) {
       </h1>
 
       <form onSubmit={handleSubmit}>
-        {/* アイコン画像プレビュー・アップロード */}
         <div style={{ marginBottom: '20px', textAlign: 'center' }}>
           {base64Image ? (
             <img src={base64Image} alt="Avatar" style={{ width: '80px', height: '80px', borderRadius: '50%', objectFit: 'cover', margin: '0 auto 10px', display: 'block', border: '2px solid #444' }} />
@@ -292,7 +291,6 @@ function EditPage({ data, tagId, base64Image, setBase64Image, isNew }: any) {
           <input type="file" accept="image/*" onChange={previewFile} style={{ fontSize: '12px', color: '#aaa' }} />
         </div>
 
-        {/* 各SNS入力カード */}
         {[
           { key: 'ig', label: 'Instagram ID', placeholder: 'username', showKey: 'igShow' },
           { key: 'tk', label: 'TikTok ID', placeholder: 'username', showKey: 'tkShow' },
@@ -324,7 +322,6 @@ function EditPage({ data, tagId, base64Image, setBase64Image, isNew }: any) {
           </div>
         ))}
 
-        {/* カスタムリンク */}
         <div style={fieldCardStyle}>
           <div style={fieldLabelStyle}>
             <span>カスタムリンク (名称 / URL)</span>
@@ -354,7 +351,6 @@ function EditPage({ data, tagId, base64Image, setBase64Image, isNew }: any) {
           />
         </div>
 
-        {/* テーマカラー */}
         <div style={{ ...fieldCardStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontSize: '13px', color: '#ccc' }}>テーマカラー</span>
           <input
@@ -365,7 +361,6 @@ function EditPage({ data, tagId, base64Image, setBase64Image, isNew }: any) {
           />
         </div>
 
-        {/* パスワード */}
         <div style={fieldCardStyle}>
           <div style={fieldLabelStyle}>パスワード（数字4桁）</div>
           <input
@@ -380,7 +375,6 @@ function EditPage({ data, tagId, base64Image, setBase64Image, isNew }: any) {
           />
         </div>
 
-        {/* あいことば */}
         <div style={fieldCardStyle}>
           <div style={fieldLabelStyle}>あいことば（パスワード忘れ防止用）</div>
           <input
@@ -415,7 +409,6 @@ function ProfilePage({ data, tagId }: { data: any; tagId: string }) {
   const g = parseInt(hex.substr(2, 2), 16) || 0;
   const b = parseInt(hex.substr(4, 2), 16) || 0;
   const tc = (r * 299 + g * 587 + b * 114) / 1000 > 125 ? '#111' : '#fff';
-  const bc = tc === '#111' ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.35)';
 
   const links = [
     { show: data.ig && data.igShow, url: data.ig?.startsWith('http') ? data.ig : `https://instagram.com/${data.ig?.replace('@', '')}`, name: 'Instagram' },
@@ -478,7 +471,6 @@ function ProfilePage({ data, tagId }: { data: any; tagId: string }) {
   );
 }
 
-// 共通スタイル用オブジェクト
 const containerStyle = {
   width: '100%',
   maxWidth: '400px',
