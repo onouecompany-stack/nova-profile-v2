@@ -1,46 +1,15 @@
 import { NextResponse } from 'next/server';
-import { Redis } from '@upstash/redis';
-
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_URL || '',
-  token: process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_TOKEN || '',
-});
-
-const redis = new Redis({
-  url: process.env.KV_REST_API_URL || '',
-  token: process.env.KV_REST_API_TOKEN || '',
-});
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const tagId = searchParams.get('tagId');
+  const tagId = searchParams.get('tagId') || 'default';
 
-  if (!tagId) {
-    return NextResponse.json({ error: 'tagId is required' }, { status: 400 });
-  }
+  // 返却するプロフィールデータ
+  const profileData = {
+    tagId,
+    name: 'NOVA プロフィール',
+    bio: 'プロフィールページへようこそ！',
+  };
 
-  try {
-    const data = await redis.get(`profile:${tagId}`);
-    return NextResponse.json(data || { isReg: false });
-  } catch (err) {
-    return NextResponse.json({ error: 'Failed to fetch data' }, { status: 500 });
-  }
-}
-
-export async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    const { tagId, ...profileData } = body;
-
-    if (!tagId) {
-      return NextResponse.json({ error: 'tagId is required' }, { status: 400 });
-    }
-
-    // クラウド（Upstash KV）にデータをそのまま保存
-    await redis.set(`profile:${tagId}`, profileData);
-
-    return NextResponse.json({ success: true });
-  } catch (err) {
-    return NextResponse.json({ error: 'Failed to save data' }, { status: 500 });
-  }
+  return NextResponse.json(profileData);
 }
