@@ -4,7 +4,6 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const tagId = searchParams.get('tagId') || 'default';
 
-  // 返却するプロフィールデータ
   const profileData = {
     tagId,
     name: 'NOVA プロフィール',
