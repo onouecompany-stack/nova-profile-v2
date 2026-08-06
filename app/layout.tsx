@@ -1,6 +1,6 @@
 export const metadata = {
   title: 'NOVA Profile',
-  description: 'Profile Management App',
+  description: 'Profile App',
 };
 
 export default function RootLayout({
@@ -10,9 +10,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ja">
-      <body style={{ margin: 0, padding: 0, background: '#0a0a0a' }}>
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
   );
 }
