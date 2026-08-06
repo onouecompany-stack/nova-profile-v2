@@ -17,7 +17,7 @@
     .field-card:active { cursor: grabbing; }
     .field-label { font-size: 11px; color: #aaa; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; }
     .input-row { display: flex; align-items: center; gap: 10px; }
-    input[type='text'], input[type='password'], input[type='email'] { flex: 1; background: #222; border: 1px solid #444; color: #fff; padding: 10px; border-radius: 8px; font-size: 16px; outline: none; box-sizing: border-box; }
+    input[type='text'], input[type='password'] { flex: 1; background: #222; border: 1px solid #444; color: #fff; padding: 10px; border-radius: 8px; font-size: 16px; outline: none; box-sizing: border-box; }
     .checkbox-wrap { display: flex; align-items: center; gap: 4px; font-size: 12px; color: #ccc; cursor: pointer; white-space: nowrap; }
     .checkbox-wrap input { width: 16px; height: 16px; accent-color: #ff007f; }
     .color-card { background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 12px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; }
@@ -37,6 +37,7 @@
     const urlParams = new URLSearchParams(window.location.search);
     const tagId = urlParams.get('tagId');
     const isEdit = urlParams.get('edit') === 'true';
+    const isForgot = urlParams.get('forgot') === 'true';
 
     if (!tagId) {
       document.getElementById('app').innerHTML = "<h3>Error: Tag IDが指定されていません。</h3>";
@@ -46,12 +47,17 @@
 
     async function loadProfile() {
       try {
-        const increment = !isEdit ? 'true' : 'false';
+        const increment = (!isEdit && !isForgot) ? 'true' : 'false';
         const res = await fetch(`/api/profile?tagId=${tagId}&incrementPv=${increment}`);
         const data = await res.json();
 
         if (!data.isReg) {
           renderEditForm({});
+          return;
+        }
+
+        if (isForgot) {
+          renderForgotForm(data);
           return;
         }
 
@@ -77,6 +83,7 @@
         <p style="color:#aaa;font-size:14px;margin-bottom:20px;">パスワードを入力してください。</p>
         <input type="password" id="pinInput" placeholder="パスワード"><br><br>
         <button class="submit-btn" onclick="checkPin('${data.pin}')">プロフィールを表示</button>
+        <p style="margin-top:15px;"><a href="?tagId=${tagId}&forgot=true" style="color:#aaa;font-size:12px;text-decoration:underline;">パスワードを忘れた場合（合言葉で変更）</a></p>
       `;
     }
 
@@ -93,6 +100,44 @@
       const res = await fetch(`/api/profile?tagId=${tagId}&incrementPv=false`);
       const data = await res.json();
       renderProfile(data);
+    }
+
+    function renderForgotForm(data) {
+      document.getElementById('app').innerHTML = `
+        <h3>🔑 パスワードリセット</h3>
+        <p style="color:#aaa;font-size:14px;margin-bottom:20px;">登録した「合言葉」を入力してください。</p>
+        <div class="field-card" style="cursor:default;"><div class="field-label">合言葉</div><div class="input-row"><input type="text" id="secretInput" placeholder="合言葉を入力"></div></div>
+        <div class="field-card" style="cursor:default;"><div class="field-label">新しいパスワード</div><div class="input-row"><input type="password" id="newPinInput" placeholder="新しいパスワード"></div></div>
+        <button class="submit-btn" onclick="resetPin('${data.secretWord || ''}')">パスワードを変更する</button>
+        <p style="margin-top:15px;"><a href="?tagId=${tagId}" style="color:#aaa;font-size:12px;text-decoration:none;">← 戻る</a></p>
+      `;
+    }
+
+    async function resetPin(correctSecret) {
+      const sVal = document.getElementById('secretInput').value;
+      const nVal = document.getElementById('newPinInput').value;
+      if (!sVal || !nVal) {
+        alert('全ての項目を入力してください');
+        return;
+      }
+      if (sVal !== correctSecret) {
+        alert('合言葉が違います');
+        return;
+      }
+
+      // パスワード更新用リクエスト
+      const res = await fetch('/api/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tagId, pin: nVal, updatePinOnly: true })
+      });
+
+      if (res.ok) {
+        alert('パスワードを変更しました！');
+        location.href = `?tagId=${tagId}`;
+      } else {
+        alert('変更に失敗しました');
+      }
     }
 
     function renderProfile(data) {
@@ -151,9 +196,9 @@
             <div class="field-card" data-id="line"><div class="field-label">LINE URL <span class="drag-handle">≡ 並び替え</span></div><div class="input-row"><input type="text" id="line" value="${data.line || ''}" placeholder="https://..."><label class="checkbox-wrap"><input type="checkbox" id="lineShow" ${data.lineShow !== false ? 'checked' : ''}>表示</label></div></div>
           </div>
 
-          <div class="field-card"><div class="field-label">通知用メールアドレス</div><div class="input-row"><input type="email" id="email" value="${data.email || ''}" required placeholder="example@email.com"></div></div>
+          <div class="field-card" style="cursor:default;"><div class="field-label">合言葉（パスワードを忘れた時用）</div><div class="input-row"><input type="text" id="secretWord" value="${data.secretWord || ''}" required placeholder="例：ペットの名前など"></div></div>
           <div class="color-card"><span style="font-size:13px;">テーマカラー</span><input type="color" id="col" value="${data.color || '#ff007f'}"></div>
-          <div class="field-card"><div class="field-label">閲覧用パスワード</div><div class="input-row"><input type="password" id="pin" value="${data.pin || ''}" placeholder="パスワード"></div></div>
+          <div class="field-card" style="cursor:default;"><div class="field-label">閲覧用パスワード</div><div class="input-row"><input type="password" id="pin" value="${data.pin || ''}" required placeholder="パスワード"></div></div>
           
           <button type="submit" class="submit-btn" id="submitBtn">${data.isReg ? "更新する" : "登録する"}</button>
         </form>
@@ -191,7 +236,7 @@
         tk: document.getElementById('tk').value,
         bereal: document.getElementById('bereal').value,
         line: document.getElementById('line').value,
-        email: document.getElementById('email').value,
+        secretWord: document.getElementById('secretWord').value,
         color: document.getElementById('col').value,
         pin: document.getElementById('pin').value,
         igShow: document.getElementById('igShow').checked,
