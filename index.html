@@ -1,1 +1,201 @@
-<p>Loading...</p>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NOVA Profile</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 2rem 1rem;
+            background: #0a0a0a;
+            color: #fff;
+            font-family: sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+        .container {
+            width: 100%;
+            max-width: 480px;
+            background: #141414;
+            border: 1px solid #222;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            box-sizing: border-box;
+        }
+        .hidden { display: none !important; }
+        button {
+            cursor: pointer;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            background: #1f1f1f;
+            border: 1px solid #333;
+            color: #fff;
+            box-sizing: border-box;
+            margin-top: 4px;
+            margin-bottom: 12px;
+        }
+        .link-btn {
+            display: block;
+            background: #1f1f1f;
+            color: #fff;
+            padding: 12px;
+            border-radius: 10px;
+            text-decoration: none;
+            border: 1px solid #333;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #444;
+            margin: 0 auto 1rem;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- 編集切り替えボタン -->
+    <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
+        <button id="toggle-btn" onclick="toggleEdit()" style="background: #333; color: #fff; border: none; padding: 6px 12px; font-size: 0.85rem;">編集する</button>
+    </div>
+
+    <!-- プレビュー画面 -->
+    <div id="view-mode" style="text-align: center;">
+        <div id="avatar-container"></div>
+        <h1 id="view-name" style="font-size: 1.5rem; margin-bottom: 0.5rem;">読み込み中...</h1>
+        <p id="view-bio" style="color: #aaa; font-size: 0.95rem; margin-bottom: 2rem; white-space: pre-wrap;"></p>
+        <div id="view-links"></div>
+    </div>
+
+    <!-- 編集画面 -->
+    <form id="edit-mode" class="hidden" onsubmit="saveProfile(event)">
+        <h2 style="font-size: 1.2rem; margin-bottom: 0.5rem;">プロフィール編集</h2>
+        
+        <label style="font-size: 0.85rem; color: #aaa;">名前</label>
+        <input type="text" id="input-name">
+
+        <label style="font-size: 0.85rem; color: #aaa;">自己紹介</label>
+        <textarea id="input-bio" rows="3"></textarea>
+
+        <label style="font-size: 0.85rem; color: #aaa;">アバター画像URL</label>
+        <input type="text" id="input-avatar">
+
+        <button type="submit" id="save-btn" style="width: 100%; background: #fff; color: #000; border: none; padding: 12px; margin-top: 1rem;">変更を保存</button>
+    </form>
+</div>
+
+<script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const tagId = urlParams.get('tagId') || 'default-user';
+
+    let currentProfile = { name: '', bio: '', avatarUrl: '', links: [] };
+    let isEdit = false;
+
+    async function loadProfile() {
+        try {
+            const res = await fetch(`/api/profile?tagId=${tagId}`);
+            const data = await res.json();
+            if (data && !data.error) {
+                currentProfile = {
+                    name: data.name || '',
+                    bio: data.bio || '',
+                    avatarUrl: data.avatarUrl || '',
+                    links: data.links || []
+                };
+            }
+            render();
+        } catch (err) {
+            console.error('Fetch error', err);
+            render();
+        }
+    }
+
+    function render() {
+        document.getElementById('view-name').textContent = currentProfile.name || '名無しさん';
+        document.getElementById('view-bio').textContent = currentProfile.bio || '自己紹介がまだ設定されていません。';
+        
+        const avatarContainer = document.getElementById('avatar-container');
+        if (currentProfile.avatarUrl) {
+            avatarContainer.innerHTML = `<img src="${currentProfile.avatarUrl}" class="avatar">`;
+        } else {
+            avatarContainer.innerHTML = `<div class="avatar" style="background: #222; display: flex; align-items: center; justify-content: center; color: #666;">No Image</div>`;
+        }
+
+        const linksContainer = document.getElementById('view-links');
+        linksContainer.innerHTML = '';
+        currentProfile.links.forEach(link => {
+            if (link.url) {
+                const a = document.createElement('a');
+                a.href = link.url;
+                a.className = 'link-btn';
+                a.target = '_blank';
+                a.textContent = link.label || link.url;
+                linksContainer.appendChild(a);
+            }
+        });
+
+        // フォームに反映
+        document.getElementById('input-name').value = currentProfile.name;
+        document.getElementById('input-bio').value = currentProfile.bio;
+        document.getElementById('input-avatar').value = currentProfile.avatarUrl;
+    }
+
+    function toggleEdit() {
+        isEdit = !isEdit;
+        document.getElementById('view-mode').classList.toggle('hidden', isEdit);
+        document.getElementById('edit-mode').classList.toggle('hidden', !isEdit);
+        document.getElementById('toggle-btn').textContent = isEdit ? 'プレビューに戻る' : '編集する';
+    }
+
+    async function saveProfile(e) {
+        e.preventDefault();
+        currentProfile.name = document.getElementById('input-name').value;
+        currentProfile.bio = document.getElementById('input-bio').value;
+        currentProfile.avatarUrl = document.getElementById('input-avatar').value;
+
+        const saveBtn = document.getElementById('save-btn');
+        saveBtn.textContent = '保存中...';
+
+        try {
+            const res = await fetch('/api/profile', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tagId, ...currentProfile })
+            });
+            if (res.ok) {
+                isEdit = false;
+                document.getElementById('view-mode').classList.remove('hidden');
+                document.getElementById('edit-mode').classList.add('hidden');
+                document.getElementById('toggle-btn').textContent = '編集する';
+                render();
+            } else {
+                alert('保存に失敗しました');
+            }
+        } catch (err) {
+            console.error('Save error', err);
+            alert('エラーが発生しました');
+        } finally {
+            saveBtn.textContent = '変更を保存';
+        }
+    }
+
+    loadProfile();
+</script>
+
+</body>
+</html>
