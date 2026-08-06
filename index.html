@@ -1,1 +1,86 @@
-<!-- disabled -->
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NOVA Profile</title>
+    <style>
+        body { margin: 0; padding: 20px; background: #111; color: #fff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; box-sizing: border-box; }
+        .box { width: 100%; max-width: 400px; background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 20px; box-sizing: border-box; text-align: center; }
+        input, button { width: 100%; padding: 12px; margin-top: 10px; border-radius: 8px; border: 1px solid #444; background: #222; color: #fff; box-sizing: border-box; font-size: 16px; }
+        button { background: #ff007f; border: none; font-weight: bold; cursor: pointer; }
+        .link-btn { display: block; background: #ff007f; color: #fff; padding: 14px; border-radius: 10px; text-decoration: none; font-weight: bold; margin-top: 10px; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div class="box" id="app">
+    <p style="color: #888;">読み込み中...</p>
+</div>
+
+<script>
+    const params = new URLSearchParams(window.location.search);
+    const tagId = params.get('tagId') || 'default';
+    const path = params.get('path');
+
+    async function init() {
+        try {
+            const res = await fetch(`/api/profile?tagId=${tagId}`);
+            const data = await res.json();
+
+            const app = document.getElementById('app');
+
+            // 未登録ならセットアップ
+            if (!data || !data.isReg) {
+                app.innerHTML = `
+                    <h2>✨ NOVA Setup</h2>
+                    <form onsubmit="save(event)">
+                        <input type="text" id="ig" placeholder="Instagram ID" value="${data.ig || ''}" style="margin-bottom:10px;">
+                        <input type="password" id="pin" placeholder="数字4桁パスワード" maxLength="4" required style="margin-bottom:10px;">
+                        <input type="text" id="secret" placeholder="あいことば" required style="margin-bottom:10px;">
+                        <button type="submit">登録する</button>
+                    </form>
+                `;
+                return;
+            }
+
+            // 通常プロフィール表示
+            const color = data.color || '#ff007f';
+            app.innerHTML = `
+                <h2>💎 NOVA Profile</h2>
+                <p style="font-size:11px; color:#777;">ID: ${tagId}</p>
+                ${data.ig ? `<a href="https://instagram.com/${data.ig}" target="_blank" class="link-btn" style="background:${color};">Instagram</a>` : ''}
+                <div style="margin-top:20px;">
+                    <a href="?tagId=${tagId}&path=edit" style="color:#aaa; font-size:12px;">情報を編集する</a>
+                </div>
+            `;
+        } catch (err) {
+            document.getElementById('app').innerHTML = '<p style="color:red;">データの読み込みに失敗しました</p>';
+        }
+    }
+
+    async function save(e) {
+        e.preventDefault();
+        const ig = document.getElementById('ig').value;
+        const pin = document.getElementById('pin').value;
+        const secretWord = document.getElementById('secret').value;
+
+        const res = await fetch('/api/profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tagId, ig, pin, secretWord, isReg: true })
+        });
+
+        if (res.ok) {
+            window.location.href = `?tagId=${tagId}`;
+        } else {
+            alert('保存失敗');
+        }
+    }
+
+    init();
+</script>
+
+</body>
+</html>
