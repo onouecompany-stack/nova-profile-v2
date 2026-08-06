@@ -1,8 +1,3 @@
-export const metadata = {
-  title: 'NOVA Profile',
-  description: 'Profile App',
-};
-
 export default function RootLayout({
   children,
 }: {
