@@ -1,100 +1,221 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nova Profile</title>
-    <style>
-        body { font-family: sans-serif; max-width: 500px; margin: 40px auto; padding: 20px; background: #f9f9f9; color: #333; }
-        .card { background: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        h1 { margin-top: 0; font-size: 24px; }
-        .form-group { margin-bottom: 16px; }
-        label { display: block; margin-bottom: 6px; font-weight: bold; font-size: 14px; }
-        input, textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
-        button { background: #000; color: #fff; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; width: 100%; font-size: 16px; font-weight: bold; }
-        button:hover { background: #333; }
-        #status { margin-top: 12px; text-align: center; font-size: 14px; color: green; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>NOVA Profile</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+  <style>
+    body { margin: 0; font-family: sans-serif; background: #111; color: #fff; text-align: center; padding: 40px 20px; box-sizing: border-box; min-height: 100vh; display: flex; flex-direction: column; justify-content: space-between; }
+    .container { width: 100%; max-width: 400px; margin: 0 auto; }
+    .avatar, .avatar-preview { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; margin: 0 auto 15px; border: 3px solid currentColor; display: block; background: #222; }
+    .avatar-preview { width: 80px; height: 80px; border: 2px solid #555; }
+    h1, h2 { font-size: 24px; margin-bottom: 8px; font-weight: bold; }
+    .tag-id { font-size: 14px; opacity: 0.8; margin-bottom: 25px; }
+    .btn { display: block; padding: 16px; margin: 14px 0; width: 100%; border-radius: 12px; text-decoration: none; font-weight: bold; font-size: 16px; box-sizing: border-box; }
+    .field-card { background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 12px; margin-bottom: 12px; text-align: left; cursor: grab; }
+    .field-card:active { cursor: grabbing; }
+    .field-label { font-size: 11px; color: #aaa; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; }
+    .input-row { display: flex; align-items: center; gap: 10px; }
+    input[type='text'], input[type='password'], input[type='email'] { flex: 1; background: #222; border: 1px solid #444; color: #fff; padding: 10px; border-radius: 8px; font-size: 16px; outline: none; box-sizing: border-box; }
+    .checkbox-wrap { display: flex; align-items: center; gap: 4px; font-size: 12px; color: #ccc; cursor: pointer; white-space: nowrap; }
+    .checkbox-wrap input { width: 16px; height: 16px; accent-color: #ff007f; }
+    .color-card { background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 12px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; }
+    input[type='color'] { -webkit-appearance: none; border: none; width: 38px; height: 38px; border-radius: 50%; cursor: pointer; background: none; }
+    input[type='color']::-webkit-color-swatch { border: 1px solid #555; border-radius: 50%; }
+    .submit-btn { width: 100%; background: #ff007f; color: #fff; border: none; padding: 14px; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; }
+    .footer { margin-top: 30px; }
+    .edit-link { font-weight: bold; text-decoration: none; font-size: 14px; display: inline-block; padding: 10px; cursor: pointer; background: none; border: none; }
+    .pv-count { font-size: 12px; opacity: 0.7; margin-top: 10px; }
+    .brand { opacity: 0.6; font-size: 11px; margin-top: 10px; }
+  </style>
 </head>
 <body>
-    <div class="card">
-        <h1 id="page-title">Nova Profile</h1>
-        <form id="profile-form">
-            <div class="form-group">
-                <label>お名前 / ニックネーム</label>
-                <input type="text" id="name" placeholder="例：山田 太郎">
-            </div>
-            <div class="form-group">
-                <label>一言メッセージ・自己紹介</label>
-                <textarea id="bio" rows="3" placeholder="よろしくお願いします！"></textarea>
-            </div>
-            <div class="form-group">
-                <label>リンク (SNSやWebサイト)</label>
-                <input type="url" id="link" placeholder="https://example.com">
-            </div>
-            <button type="submit">保存する</button>
-        </form>
-        <div id="status"></div>
-    </div>
+  <div class="container" id="app">読み込み中...</div>
 
-    <script>
-        // URLの ?tagId=xxx を取得（なければデフォルト値を使用）
-        const urlParams = new URLSearchParams(window.location.search);
-        const tagId = urlParams.get('tagId') || 'default-tag';
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const tagId = urlParams.get('tagId');
+    const isEdit = urlParams.get('edit') === 'true';
 
-        document.getElementById('page-title').innerText = `Profile (${tagId})`;
+    if (!tagId) {
+      document.getElementById('app').innerHTML = "<h3>Error: Tag IDが指定されていません。</h3>";
+    } else {
+      loadProfile();
+    }
 
-        // データを取得して画面に反映
-        async function fetchProfile() {
-            try {
-                const res = await fetch(`/api/profile?tagId=${tagId}`);
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data) {
-                        document.getElementById('name').value = data.name || '';
-                        document.getElementById('bio').value = data.bio || '';
-                        document.getElementById('link').value = data.link || '';
-                    }
-                }
-            } catch (err) {
-                console.error('読み込み失敗:', err);
-            }
+    async function loadProfile() {
+      try {
+        const increment = !isEdit ? 'true' : 'false';
+        const res = await fetch(`/api/profile?tagId=${tagId}&incrementPv=${increment}`);
+        const data = await res.json();
+
+        if (!data.isReg) {
+          renderEditForm({});
+          return;
         }
 
-        // データを保存する
-        document.getElementById('profile-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const status = document.getElementById('status');
-            status.innerText = '保存中...';
+        if (isEdit) {
+          renderEditForm(data);
+          return;
+        }
 
-            const payload = {
-                tagId: tagId,
-                name: document.getElementById('name').value,
-                bio: document.getElementById('bio').value,
-                link: document.getElementById('link').value
-            };
+        if (data.pin) {
+          renderPinAuth(data);
+          return;
+        }
 
-            try {
-                const res = await fetch('/api/profile', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
+        renderProfile(data);
+      } catch (e) {
+        document.getElementById('app').innerHTML = "<h3>データの読み込みに失敗しました</h3>";
+      }
+    }
 
-                if (res.ok) {
-                    status.innerText = '保存しました！';
-                    setTimeout(() => status.innerText = '', 3000);
-                } else {
-                    status.innerText = '保存に失敗しました。';
-                    status.style.color = 'red';
-                }
-            } catch (err) {
-                status.innerText = 'エラーが発生しました。';
-                status.style.color = 'red';
-            }
-        });
+    function renderPinAuth(data) {
+      document.getElementById('app').innerHTML = `
+        <h3>🔒 プロフィール保護</h3>
+        <p style="color:#aaa;font-size:14px;margin-bottom:20px;">パスワードを入力してください。</p>
+        <input type="password" id="pinInput" placeholder="パスワード"><br><br>
+        <button class="submit-btn" onclick="checkPin('${data.pin}')">プロフィールを表示</button>
+      `;
+    }
 
-        fetchProfile();
-    </script>
+    function checkPin(correctPin) {
+      const val = document.getElementById('pinInput').value;
+      if (val === correctPin) {
+        loadProfileUnlocked();
+      } else {
+        alert('パスワードが違います');
+      }
+    }
+
+    async function loadProfileUnlocked() {
+      const res = await fetch(`/api/profile?tagId=${tagId}&incrementPv=false`);
+      const data = await res.json();
+      renderProfile(data);
+    }
+
+    function renderProfile(data) {
+      const hex = (data.color || "#ff007f").replace('#', '');
+      const r = parseInt(hex.substr(0,2),16)||0;
+      const g = parseInt(hex.substr(2,2),16)||0;
+      const b = parseInt(hex.substr(4,2),16)||0;
+      const tc = (r*299 + g*587 + b*114) / 1000 > 125 ? '#111' : '#fff';
+      const bc = tc === '#111' ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.35)';
+
+      document.body.style.background = data.color || "#ff007f";
+      document.body.style.color = tc;
+
+      let linksHtml = '';
+      const linksMap = {
+        ig: (data.ig && data.igShow) ? `<a href="https://instagram.com/${data.ig.replace('@','')}" class="btn" style="background:${bc};color:${tc};" target="_blank">Instagram</a>` : '',
+        tk: (data.tk && data.tkShow) ? `<a href="https://tiktok.com/@${data.tk.replace('@','')}" class="btn" style="background:${bc};color:${tc};" target="_blank">TikTok</a>` : '',
+        bereal: (data.bereal && data.berealShow) ? `<a href="${data.bereal}" class="btn" style="background:${bc};color:${tc};" target="_blank">BeReal</a>` : '',
+        line: (data.line && data.lineShow) ? `<a href="${data.line}" class="btn" style="background:${bc};color:${tc};" target="_blank">LINE</a>` : ''
+      };
+
+      const order = data.linkOrder || ["ig", "tk", "bereal", "line"];
+      order.forEach(k => { if (linksMap[k]) linksHtml += linksMap[k]; });
+
+      document.getElementById('app').innerHTML = `
+        <div>
+          ${data.image ? `<img src="${data.image}" class="avatar" style="border-color:${tc}">` : ''}
+          <h1 style="color:${tc}">💎 NOVA Profile</h1>
+          <div class="tag-id" style="color:${tc}">ID: ${tagId}</div>
+          ${linksHtml}
+        </div>
+        <div class="footer">
+          <button class="edit-link" style="color:${tc}" onclick="location.href='?tagId=${tagId}&edit=true'">情報を編集する</button>
+          <div class="pv-count" style="color:${tc}">Views: ${data.pv || 0}</div>
+          <div class="brand" style="color:${tc}">Powered by NOVA</div>
+        </div>
+      `;
+    }
+
+    let base64Image = "";
+    function renderEditForm(data) {
+      base64Image = data.image || "";
+      document.body.style.background = "#111";
+      document.body.style.color = "#fff";
+
+      document.getElementById('app').innerHTML = `
+        <h2>${data.isReg ? "✨ NOVA Edit" : "✨ NOVA Setup"}</h2>
+        <form onsubmit="saveProfile(event)">
+          <img id="previewImg" src="${data.image || ''}" class="avatar-preview" style="${data.image ? '' : 'display:none;'}">
+          <div style="margin-bottom:20px;"><input type="file" id="imageFile" accept="image/*" onchange="previewFile()" style="font-size:12px;color:#aaa;"></div>
+          
+          <div id="sortable-links">
+            <div class="field-card" data-id="ig"><div class="field-label">Instagram ID <span class="drag-handle">≡ 並び替え</span></div><div class="input-row"><input type="text" id="ig" value="${data.ig || ''}" placeholder="username"><label class="checkbox-wrap"><input type="checkbox" id="igShow" ${data.igShow !== false ? 'checked' : ''}>表示</label></div></div>
+            <div class="field-card" data-id="tk"><div class="field-label">TikTok ID <span class="drag-handle">≡ 並び替え</span></div><div class="input-row"><input type="text" id="tk" value="${data.tk || ''}" placeholder="username"><label class="checkbox-wrap"><input type="checkbox" id="tkShow" ${data.tkShow !== false ? 'checked' : ''}>表示</label></div></div>
+            <div class="field-card" data-id="bereal"><div class="field-label">BeReal URL <span class="drag-handle">≡ 並び替え</span></div><div class="input-row"><input type="text" id="bereal" value="${data.bereal || ''}" placeholder="https://..."><label class="checkbox-wrap"><input type="checkbox" id="berealShow" ${data.berealShow !== false ? 'checked' : ''}>表示</label></div></div>
+            <div class="field-card" data-id="line"><div class="field-label">LINE URL <span class="drag-handle">≡ 並び替え</span></div><div class="input-row"><input type="text" id="line" value="${data.line || ''}" placeholder="https://..."><label class="checkbox-wrap"><input type="checkbox" id="lineShow" ${data.lineShow !== false ? 'checked' : ''}>表示</label></div></div>
+          </div>
+
+          <div class="field-card"><div class="field-label">通知用メールアドレス</div><div class="input-row"><input type="email" id="email" value="${data.email || ''}" required placeholder="example@email.com"></div></div>
+          <div class="color-card"><span style="font-size:13px;">テーマカラー</span><input type="color" id="col" value="${data.color || '#ff007f'}"></div>
+          <div class="field-card"><div class="field-label">閲覧用パスワード</div><div class="input-row"><input type="password" id="pin" value="${data.pin || ''}" placeholder="パスワード"></div></div>
+          
+          <button type="submit" class="submit-btn" id="submitBtn">${data.isReg ? "更新する" : "登録する"}</button>
+        </form>
+        <p style="margin-top:20px;"><button class="edit-link" style="color:#aaa;" onclick="location.href='?tagId=${tagId}'">← プロフィールに戻る</button></p>
+      `;
+      Sortable.create(document.getElementById('sortable-links'), { animation: 150, handle: '.field-card' });
+    }
+
+    function previewFile() {
+      const file = document.getElementById('imageFile').files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        base64Image = reader.result;
+        const img = document.getElementById('previewImg');
+        img.src = base64Image;
+        img.style.display = 'block';
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function saveProfile(e) {
+      e.preventDefault();
+      const btn = document.getElementById('submitBtn');
+      btn.innerText = "保存中...";
+      btn.disabled = true;
+
+      const order = [];
+      document.querySelectorAll('#sortable-links .field-card').forEach(el => order.push(el.getAttribute('data-id')));
+
+      const payload = {
+        tagId,
+        isReg: true,
+        ig: document.getElementById('ig').value,
+        tk: document.getElementById('tk').value,
+        bereal: document.getElementById('bereal').value,
+        line: document.getElementById('line').value,
+        email: document.getElementById('email').value,
+        color: document.getElementById('col').value,
+        pin: document.getElementById('pin').value,
+        igShow: document.getElementById('igShow').checked,
+        tkShow: document.getElementById('tkShow').checked,
+        berealShow: document.getElementById('berealShow').checked,
+        lineShow: document.getElementById('lineShow').checked,
+        image: base64Image,
+        linkOrder: order
+      };
+
+      const res = await fetch('/api/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        location.href = `?tagId=${tagId}`;
+      } else {
+        alert('保存に失敗しました');
+        btn.innerText = "登録する";
+        btn.disabled = false;
+      }
+    }
+  </script>
 </body>
 </html>
